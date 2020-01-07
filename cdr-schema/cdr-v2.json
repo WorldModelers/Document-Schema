@@ -8,7 +8,7 @@
       "type": "string"
     },
     "source_uri": {
-      "description": "Relative path to the extracted source file",
+      "description": "Relative path to the extracted source file, i.e., filename of the raw document",
       "type": "string"
     },
     "document_id": {
@@ -16,9 +16,9 @@
       "type": "string"
     },
     "timestamp": {
-      "description": "Timestamp from epoch when this CDR document was created",
+      "description": "Timestamp when this CDR document was created, in ISO 8601 date time format at UTC offset",
       "type": "string",
-      "pattern" : "[0-9]{4}-[0-1][0-9]-[0-3][0-9]T[0-2][0-9]:[0-6][0-9]:[0-6][0-9]\\.[0-9]{3}Z"
+      "pattern": "[0-9]{4}-[0-1][0-9]-[0-3][0-9]T[0-2][0-9]:[0-6][0-9]:[0-6][0-9]\\.[0-9]{3}Z"
     },
     "team": {
       "description": "Team which generated this CDR",
@@ -29,7 +29,7 @@
       "type": "string"
     },
     "extracted_metadata": {
-      "description": "Metadata pertaining to the extracted source file",
+      "description": "Metadata pertaining to the extracted source file. Currently this is obtained only from metadata embedded in the raw document, which are not always present and can mean different things in different documents, depending on how each document is produced",
       "type": "object",
       "properties": {
         "CreationDate": {
@@ -50,6 +50,7 @@
           "type": "string"
         },
         "URL": {
+          "description": "This metadata field is generally present only in html files that include their own source URL as a meta tag in their headers. It is not frequently populated.",
           "type": "string"
         },
         "Type": {
@@ -102,19 +103,17 @@
           },
           {
             "$ref": "#/definitions/offset-tag-annotation"
+          },
+          {
+            "$ref": "#/definitions/facet-annotation"
           }
         ]
-      }
-    },
-    "categories": {
-      "type": "array",
-      "items": {
-        "type": "string"
       }
     }
   },
   "definitions": {
     "text-annotation": {
+      "description": "A simple annotation consisting of only a string.",
       "$id": "text-annotation",
       "type": "object",
       "properties": {
@@ -124,15 +123,29 @@
         "version": {
           "type": "string"
         },
+        "class": {
+          "type": "string",
+          "enum": [
+            "static",
+            "derived"
+          ]
+        },
         "content": {
           "type": "string"
         },
         "type": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "text"
+          ]
         }
-      }
+      },
+      "required": [
+        "type"
+      ]
     },
     "dictionary-annotation": {
+      "description": "An annotation consisting of a collection of key-value pairs of type string. (Currently unused.)",
       "$id": "dictionary-annotation",
       "type": "object",
       "properties": {
@@ -143,7 +156,17 @@
           "type": "string"
         },
         "type": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "dictionary"
+          ],
+          "class": {
+            "type": "string",
+            "enum": [
+              "static",
+              "derived"
+            ]
+          }
         },
         "content": {
           "type": "object",
@@ -151,9 +174,13 @@
             "type": "string"
           }
         }
-      }
+      },
+      "required": [
+        "type"
+      ]
     },
     "offset-tag-annotation": {
+      "description": "An annotation consisting of an array of tags, each identified with a specific substring of extracted_text. Currently used by Qntfy's event and NER extraction tools.",
       "$id": "offset-tag-annotation",
       "type": "object",
       "properties": {
@@ -164,7 +191,17 @@
           "type": "string"
         },
         "type": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "tags"
+          ]
+        },
+        "class": {
+          "type": "string",
+          "enum": [
+            "static",
+            "derived"
+          ]
         },
         "content": {
           "type": "array",
@@ -172,15 +209,19 @@
             "type": "object",
             "properties": {
               "offset_start": {
+                "description": "The index of the first character in extracted_text corresponding to this annotation",
                 "type": "integer"
               },
               "offset_end": {
+                "description": "The index of the last character in extracted_text corresponding to this annotation",
                 "type": "integer"
               },
               "value": {
+                "description": "The substring of extracted_text from offset_start to offset_end",
                 "type": "string"
               },
               "tag": {
+                "description": "An identifier corresponding to the text contained in value. All events identified by Qntfy's event analytic are currently tagged as 'B-action'. Qntfy's named entity annotation tags are 'CARDINAL', 'DATE', 'EVENT', 'FAC', 'GPE', 'LANGUAGE', 'LAW', 'LOC', 'MONEY', 'NORP', 'ORDINAL', 'ORG', 'PERCENT', 'PERSON', 'PRODUCT', 'QUANTITY', 'TIME', and 'WORK_OF_ART'. See https://spacy.io/api/annotation to learn more.",
                 "type": "string"
               }
             },
@@ -191,7 +232,59 @@
             ]
           }
         }
-      }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    "facet-annotation": {
+      "description": "An annotation consisting of any array of words or phrases that characterize some facet of a document, each of which has an optional confidence value between 0 and 1.",
+      "$id": "facet-annotation",
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "facets"
+          ]
+        },
+        "class": {
+          "type": "string",
+          "enum": [
+            "static",
+            "derived"
+          ]
+        },
+        "content": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "value": {
+                "type": "string"
+              },
+              "confidence": {
+                "description": "Confidence score of the keyword, between 0 and 1",
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            },
+            "required": [
+              "value"
+            ]
+          }
+        }
+      },
+      "required": [
+        "type"
+      ]
     }
   },
   "required": [

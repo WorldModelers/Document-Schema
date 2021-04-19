@@ -241,8 +241,10 @@
                 "type": "string"
               },
               "score": {
-                "description": "A score for the tagged substring between 0 and 1",
-                "type": "string"
+                "description": "A score of the tagged text span between 0 and 1",
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
               }
             },
             "required": [
